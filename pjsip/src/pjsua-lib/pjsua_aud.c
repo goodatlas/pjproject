@@ -1876,6 +1876,30 @@ static pj_status_t open_snd_dev(pjmedia_snd_port_param *param)
 	      1000 / param->base.clock_rate));
     pj_log_push_indent();
 
+    // Tx-timing fixed version
+
+    /* Create mono splitter/combiner */
+    status = pjmedia_splitcomb_create(
+        pjsua_var.snd_pool,
+        param->base.clock_rate,
+        param->base.channel_count,
+        param->base.samples_per_frame,
+        param->base.bits_per_sample,
+        0, /* options */
+        &pjsua_var.splitcomb);
+    if (status != PJ_SUCCESS)
+        goto on_error;
+
+    /* Create reverse channel */
+    status = pjmedia_splitcomb_create_rev_channel(
+        pjsua_var.snd_pool,
+        pjsua_var.splitcomb,
+        0 /* channel #1 */,
+        0 /* options */,
+        &pjsua_var.rev_port);
+    if (status != PJ_SUCCESS)
+        goto on_error;
+
     if (speaker_only) {
 	pjmedia_snd_port_param cp_param;
 	int dev_id = param->base.play_id;
@@ -1963,16 +1987,32 @@ static pj_status_t open_snd_dev(pjmedia_snd_port_param *param)
 	}
     }
 
+    /* Connect the splitter to the sound device */
+    status = pjmedia_snd_port_connect(pjsua_var.snd_port, pjsua_var.splitcomb);
+    if (status != PJ_SUCCESS)
+        goto on_error;
 
-    /* Connect sound port to the bridge */
-    status = pjmedia_snd_port_connect(pjsua_var.snd_port,
-				      conf_port );
-    if (status != PJ_SUCCESS) {
-	pjsua_perror(THIS_FILE, "Unable to connect conference port to "
-			        "sound device", status);
-	pjmedia_snd_port_destroy(pjsua_var.snd_port);
-	pjsua_var.snd_port = NULL;
-	goto on_error;
+    /* Create master port, connecting port0 of the conference bridge to
+     * the snd port. save it in pjsua_var.null_snd
+     */
+    status = pjmedia_master_port_create(pjsua_var.snd_pool, pjsua_var.rev_port,
+                                        conf_port, 0, &pjsua_var.null_snd);
+    if (status != PJ_SUCCESS)
+    {
+        pjsua_perror(THIS_FILE, "Unable to create master port for sound device",
+                     status);
+        pj_log_pop_indent();
+        return status;
+    }
+
+    /* Start the master port */
+    status = pjmedia_master_port_start(pjsua_var.null_snd);
+    if (status != PJ_SUCCESS)
+    {
+        pjsua_perror(THIS_FILE, "Unable to start master port",
+                     status);
+        pj_log_pop_indent();
+        return status;
     }
 
     /* Update sound device name. */
@@ -2071,6 +2111,18 @@ static void close_snd_dev(void)
 	pjmedia_snd_port_disconnect(pjsua_var.snd_port);
 	pjmedia_snd_port_destroy(pjsua_var.snd_port);
 	pjsua_var.snd_port = NULL;
+    }
+
+    // Tx-timing fixed version
+    if (pjsua_var.rev_port)
+    {
+        pjmedia_port_destroy(pjsua_var.rev_port);
+        pjsua_var.rev_port = NULL;
+    }
+    if (pjsua_var.splitcomb)
+    {
+        pjmedia_port_destroy(pjsua_var.splitcomb);
+        pjsua_var.splitcomb = NULL;
     }
 
     /* Close null sound device */
