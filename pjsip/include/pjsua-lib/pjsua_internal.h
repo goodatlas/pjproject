@@ -509,6 +509,8 @@ struct pjsua_data
     pj_timer_entry	 snd_idle_timer;/**< Sound device idle timer.	*/
     pjmedia_master_port	*null_snd;  /**< Master port for null sound.	*/
     pjmedia_port	*null_port; /**< Null port.			*/
+    pjmedia_port *splitcomb;        /**< Null port.			*/
+    pjmedia_port *rev_port;         /**< Null port.			*/
     pj_bool_t		 snd_is_on; /**< Media flow is currently active */
     unsigned		 snd_mode;  /**< Sound device mode.		*/
 

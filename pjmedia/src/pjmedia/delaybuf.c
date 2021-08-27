@@ -333,7 +333,7 @@ PJ_DEF(pj_status_t) pjmedia_delay_buf_get( pjmedia_delay_buf *b,
     /* Starvation checking */
     if (pjmedia_circ_buf_get_len(b->circ_buf) < b->samples_per_frame) {
 
-	PJ_LOG(4,(b->obj_name,"Underflow, buf_cnt=%d, will generate 1 frame",
+	PJ_LOG(5,(b->obj_name,"Underflow, buf_cnt=%d, will generate 1 frame",
 		  pjmedia_circ_buf_get_len(b->circ_buf)));
 
         if (b->wsola) {
