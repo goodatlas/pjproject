@@ -1528,6 +1528,10 @@ static pj_status_t put_frame_imp( pjmedia_port *port,
     stream->rtcp.stat.rtp_tx_last_ts = pj_ntohl(stream->enc->rtp.out_hdr.ts);
     stream->rtcp.stat.rtp_tx_last_seq = pj_ntohs(stream->enc->rtp.out_hdr.seq);
 
+		PJ_LOG(5, (stream->port.info.name.ptr, "rtp_tx_last_ts: %d, rtp_tx_last_seq: %d",
+						 stream->rtcp.stat.rtp_tx_last_ts,
+						 stream->rtcp.stat.rtp_tx_last_seq));
+
 #if defined(PJMEDIA_STREAM_ENABLE_KA) && PJMEDIA_STREAM_ENABLE_KA!=0
     /* Update timestamp of last sending packet. */
     stream->last_frm_ts_sent = frame->timestamp;
